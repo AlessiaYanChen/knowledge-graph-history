@@ -1,0 +1,37 @@
+{
+  "theme": "河流、城市与文明",
+  "intro": "沿着一个问题，观察水、土地与人如何共同塑造城市。",
+  "featuredQuestionIds": ["river-city"],
+  "questions": [
+    {"id":"river-city","title":"为什么古代城市经常建在河边？","eyebrow":"起点 · 城市与河流","summary":"河流为一些早期城市提供了水和可灌溉的土地，也可能成为交通通道。但这不是适用于所有城市的规律；洪水、气候与人的选择同样重要。","points":["两河流域南部的灌溉帮助聚落向少雨地区发展。","农业、交换与管理需求可能共同影响城市的发展。","靠河而居也要面对洪水和河道变化。"],"context":{"period":"约公元前六千纪至前三千纪（示例聚焦）","place":"两河流域南部；标题中的普遍性表述待审核","interpretationNote":"以两河流域说明可能机制，不直接推广至所有古代城市。"},"sourceIds":["met-chronology","met-first-cities"],"reviewStatus":"partial"},
+    {"id":"irrigation","title":"河水怎样改变农田与聚落？","eyebrow":"方向 01 · 农业","summary":"在两河流域南部，灌溉让人们能在雨水不足的平原耕作。渠道的开辟和维护需要持续组织。","points":["河水需要被引向田地。","灌溉设施需要维护。","不同地区的农业条件不可简单套用。"],"context":{"period":"约公元前六千纪起","place":"底格里斯河与幼发拉底河流域南部","interpretationNote":"灌溉与城市形成之间的因果程度仍需结合具体遗址讨论。"},"sourceIds":["met-chronology","met-ubaid"],"reviewStatus":"partial"},
+    {"id":"exchange","title":"河流会成为城市的运输线吗？","eyebrow":"方向 02 · 往来","summary":"水路可能连接城市与远方。不过河段与年代不同，运输条件也不同；早期城市的具体航线仍待核实。","points":["水路是可能的路线，不一定始终通畅。","河流和陆路可以共同构成交换网络。","具体货物与航线需要更细的史料。"],"context":{"period":"古代两河流域；具体时期待细化","place":"底格里斯河与幼发拉底河流域","interpretationNote":"此处为探索假设，早期城市运输细节待审核。"},"sourceIds":[],"reviewStatus":"pending"},
+    {"id":"flood","title":"靠河而居要付出什么代价？","eyebrow":"方向 03 · 风险","summary":"水带来机会，也带来不确定性。两河流域的降雨和洪水并不总是可预测，人们需要选择地点并管理水。","points":["洪水可能损坏农田和住处。","水道维护需要持续投入。","选址需要权衡便利与风险。"],"context":{"period":"古代两河流域；具体时期待细化","place":"两河流域","interpretationNote":"具体城市的防洪方式需要对应的考古证据。"},"sourceIds":["met-first-cities"],"reviewStatus":"partial"},
+    {"id":"organization","title":"谁来组织水道与粮食？","eyebrow":"深入 · 社会组织","summary":"渠道、田地与粮食分配交织在一起，管理和记录便成为值得追问的主题。不同学者对其因果作用有不同解释。","points":["大型工程可能需要协作。","两河流域城市材料中可观察到记录和管理。","不能仅凭灌溉推断固定的政治形式。"],"context":{"period":"约公元前四千纪至前三千纪","place":"两河流域南部","interpretationNote":"“灌溉促成国家”只是一种待专题审校的解释。"},"sourceIds":["met-chronology","met-first-cities"],"reviewStatus":"pending"},
+    {"id":"compare","title":"所有早期城市都依赖大河吗？","eyebrow":"深入 · 比较","summary":"这是检验概括是否过度的问题。需要明确“城市”和“依赖”的含义，再逐个核对不同地区的案例。","points":["比较不同年代和地理区域。","留意不同水源与城市位置。","跨地区案例尚未完成审校。"],"context":{"period":null,"place":"跨地区比较（待审核）","interpretationNote":"比较框架已预留，暂不对具体文明下结论。"},"sourceIds":[],"reviewStatus":"pending"}
+  ],
+  "recommendations": [
+    {"fromQuestionId":"river-city","toQuestionId":"irrigation","reason":"先看河水怎样帮助生产食物。"},{"fromQuestionId":"river-city","toQuestionId":"exchange","reason":"从交通与交换理解城市的汇聚。"},{"fromQuestionId":"river-city","toQuestionId":"flood","reason":"把河流的风险放进同一幅图。"},
+    {"fromQuestionId":"irrigation","toQuestionId":"organization","reason":"追问渠道和粮食怎样被协调。"},{"fromQuestionId":"irrigation","toQuestionId":"flood","reason":"理解灌溉与水患之间的张力。"},{"fromQuestionId":"irrigation","toQuestionId":"compare","reason":"检验这一机制能否用于其他地区。"},
+    {"fromQuestionId":"exchange","toQuestionId":"irrigation","reason":"回看河流对食物生产的作用。"},{"fromQuestionId":"exchange","toQuestionId":"flood","reason":"比较运输便利与河流风险。"},{"fromQuestionId":"exchange","toQuestionId":"compare","reason":"比较不同城市的水路作用。"},
+    {"fromQuestionId":"flood","toQuestionId":"irrigation","reason":"看水如何同时带来收益。"},{"fromQuestionId":"flood","toQuestionId":"organization","reason":"探究管理水患涉及的协作。"},{"fromQuestionId":"flood","toQuestionId":"compare","reason":"比较不同水环境的风险。"},
+    {"fromQuestionId":"organization","toQuestionId":"irrigation","reason":"回看管理工作的灌溉背景。"},{"fromQuestionId":"organization","toQuestionId":"flood","reason":"联系水患理解组织需求。"},{"fromQuestionId":"organization","toQuestionId":"compare","reason":"审视一种解释能否跨地区成立。"},
+    {"fromQuestionId":"compare","toQuestionId":"irrigation","reason":"回到资料较明确的灌溉案例。"},{"fromQuestionId":"compare","toQuestionId":"exchange","reason":"比较水路对城市的作用。"},{"fromQuestionId":"compare","toQuestionId":"flood","reason":"比较不同水环境的代价。"}
+  ],
+  "mapNodes": [
+    {"id":"river","label":"河流","kind":"environment","questionId":null},{"id":"water","label":"水源与灌溉","kind":"practice","questionId":"irrigation"},{"id":"fields","label":"农田与聚落","kind":"settlement","questionId":"river-city"},{"id":"routes","label":"水路与交换","kind":"practice","questionId":"exchange"},{"id":"floods","label":"洪水风险","kind":"environment","questionId":"flood"},{"id":"city","label":"城市发展","kind":"settlement","questionId":"organization"}
+  ],
+  "knowledgeRelations": [
+    {"fromNodeId":"river","toNodeId":"water","type":"resource_for","label":"提供水源","reviewStatus":"reviewed","sourceIds":["met-chronology"]},
+    {"fromNodeId":"water","toNodeId":"fields","type":"enables","label":"灌溉支持耕作","reviewStatus":"reviewed","sourceIds":["met-ubaid"]},
+    {"fromNodeId":"fields","toNodeId":"city","type":"contributes_to","label":"可能支持聚落扩大","reviewStatus":"pending","sourceIds":[]},
+    {"fromNodeId":"river","toNodeId":"routes","type":"route_for","label":"可能成为水路","reviewStatus":"pending","sourceIds":[]},
+    {"fromNodeId":"river","toNodeId":"floods","type":"exposes_to","label":"伴随洪水风险","reviewStatus":"reviewed","sourceIds":["met-first-cities"]},
+    {"fromNodeId":"routes","toNodeId":"city","type":"contributes_to","label":"可能促进交换","reviewStatus":"pending","sourceIds":[]}
+  ],
+  "sources": [
+    {"id":"met-chronology","title":"Mesopotamia, 8000–2000 B.C.","publisher":"The Metropolitan Museum of Art","url":"https://www.metmuseum.org/toah/ht/02/wam.html","reviewStatus":"reviewed","note":"资料提及早期灌溉聚落与城市形成。"},
+    {"id":"met-ubaid","title":"The Ubaid Period (5500–4000 B.C.)","publisher":"The Metropolitan Museum of Art","url":"https://www.metmuseum.org/essays/the-ubaid-period-5500-4000-b-c","reviewStatus":"reviewed","note":"资料提及两河流域南部灌溉农业与聚落。"},
+    {"id":"met-first-cities","title":"Art of the First Cities","publisher":"The Metropolitan Museum of Art","url":"https://www.metmuseum.org/exhibitions/listings/2003/art-of-the-first-cities","reviewStatus":"reviewed","note":"资料讨论灌溉、不可预测的降雨与洪水。"}
+  ]
+}

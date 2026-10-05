@@ -3,10 +3,12 @@ using HistoryExplorer.Api;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ExplorationCatalog>();
 builder.Services.AddSingleton<PathStore>();
+builder.Services.AddSingleton<ReadingStore>();
 
 var app = builder.Build();
 var catalog = app.Services.GetRequiredService<ExplorationCatalog>();
 await app.Services.GetRequiredService<PathStore>().InitializeAsync();
+await app.Services.GetRequiredService<ReadingStore>().InitializeAsync();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/api/exploration", () => Results.Ok(catalog.Data));
@@ -22,6 +24,7 @@ app.MapPost("/api/paths", async (SavePathRequest request, PathStore store) =>
     var saved = await store.SaveAsync(request.Title.Trim(), request.QuestionIds);
     return Results.Created($"/api/paths/{saved.Id}", saved);
 });
+app.MapReadingEndpoints();
 
 app.Run();
 

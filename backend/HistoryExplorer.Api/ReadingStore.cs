@@ -2,18 +2,18 @@ using Microsoft.Data.Sqlite;
 
 namespace HistoryExplorer.Api;
 
-public sealed record Book(Guid Id, string Title, string Author, string Description);
-public sealed record Chapter(Guid Id, Guid BookId, string Title, string Summary, int Position);
-public sealed record ReadingExcerpt(Guid Id, Guid ChapterId, string Label, string Text, int Position);
-public sealed record ReadingNote(Guid Id, Guid ExcerptId, string Mode, string Text, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+public sealed record Book(Guid Id, string Title, string Author, string Description, string? RichContent, int? FormatVersion);
+public sealed record Chapter(Guid Id, Guid BookId, string Title, string Summary, int Position, string? RichContent, int? FormatVersion);
+public sealed record ReadingExcerpt(Guid Id, Guid ChapterId, string Label, string Text, int Position, string? RichContent, int? FormatVersion);
+public sealed record ReadingNote(Guid Id, Guid ExcerptId, string Mode, string Text, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, string? RichContent, int? FormatVersion);
 public sealed record ReadingSnapshot(List<Book> Books, List<Chapter> Chapters, List<ReadingExcerpt> Excerpts, List<ReadingNote> Notes);
-public sealed record BookInput(string Title, string Author, string Description);
-public sealed record ChapterInput(Guid BookId, string Title, string Summary);
-public sealed record ChapterUpdate(string Title, string Summary);
-public sealed record ExcerptInput(Guid ChapterId, string Label, string Text);
-public sealed record ExcerptUpdate(string Label, string Text);
-public sealed record NoteInput(Guid ExcerptId, string Mode, string Text);
-public sealed record NoteUpdate(string Mode, string Text);
+public sealed record BookInput(string Title, string Author, string Description, string? RichContent, int? FormatVersion);
+public sealed record ChapterInput(Guid BookId, string Title, string Summary, string? RichContent, int? FormatVersion);
+public sealed record ChapterUpdate(string Title, string Summary, string? RichContent, int? FormatVersion);
+public sealed record ExcerptInput(Guid ChapterId, string Label, string Text, string? RichContent, int? FormatVersion);
+public sealed record ExcerptUpdate(string Label, string Text, string? RichContent, int? FormatVersion);
+public sealed record NoteInput(Guid ExcerptId, string Mode, string Text, string? RichContent, int? FormatVersion);
+public sealed record NoteUpdate(string Mode, string Text, string? RichContent, int? FormatVersion);
 
 public sealed class ReadingStore(IWebHostEnvironment environment)
 {
@@ -53,7 +53,27 @@ public sealed class ReadingStore(IWebHostEnvironment environment)
             CREATE INDEX IF NOT EXISTS ix_notes_excerpt ON reading_notes(excerpt_id, created_at);
             """;
         await command.ExecuteNonQueryAsync();
+        await AddRichColumnsAsync(connection, "books");
+        await AddRichColumnsAsync(connection, "chapters");
+        await AddRichColumnsAsync(connection, "reading_excerpts");
+        await AddRichColumnsAsync(connection, "reading_notes");
         await SeedOnceAsync(connection);
+    }
+
+    private static async Task AddRichColumnsAsync(SqliteConnection connection, string table)
+    {
+        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var inspect = connection.CreateCommand();
+        inspect.CommandText = $"PRAGMA table_info({table})";
+        await using (var reader = await inspect.ExecuteReaderAsync())
+            while (await reader.ReadAsync()) columns.Add(reader.GetString(1));
+        foreach (var (name, type) in new[] { ("rich_content", "TEXT"), ("format_version", "INTEGER") })
+        {
+            if (columns.Contains(name)) continue;
+            var alter = connection.CreateCommand();
+            alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {name} {type}";
+            await alter.ExecuteNonQueryAsync();
+        }
     }
 
     private static async Task SeedOnceAsync(SqliteConnection connection)
@@ -62,18 +82,29 @@ public sealed class ReadingStore(IWebHostEnvironment environment)
         check.CommandText = "SELECT 1 FROM reading_metadata WHERE key = 'sample_seeded'";
         if (await check.ExecuteScalarAsync() is not null) return;
 
+        // A database that already contains reading data must never receive demo rows.
+        var existing = connection.CreateCommand();
+        existing.CommandText = "SELECT (SELECT COUNT(*) FROM books) + (SELECT COUNT(*) FROM chapters) + (SELECT COUNT(*) FROM reading_excerpts) + (SELECT COUNT(*) FROM reading_notes) + (SELECT COUNT(*) FROM saved_paths)";
+        if (Convert.ToInt64(await existing.ExecuteScalarAsync()) > 0)
+        {
+            var mark = connection.CreateCommand();
+            mark.CommandText = "INSERT OR IGNORE INTO reading_metadata (key,value) VALUES ('sample_seeded','existing_data')";
+            await mark.ExecuteNonQueryAsync();
+            return;
+        }
+
         await using var transaction = await connection.BeginTransactionAsync();
         var book = Guid.Parse("2d7d1d0f-5538-4cf6-9680-d6e7c16b1e48");
         var first = Guid.Parse("4ae2851a-49f4-4450-957c-d9bb642d3b17");
         var second = Guid.Parse("4f3c0fcf-2a72-43fd-8f50-e361e7500d9c");
         var statements = new[]
         {
-            ("INSERT INTO books VALUES ($a,$b,$c,$d)", new object[] { book, "河岸练习", "项目原创示例", "一部为阅读工作流写作的虚构短篇。所有片段均为本站原创示例，并非真实出版物。" }),
-            ("INSERT INTO chapters VALUES ($a,$b,$c,$d,1)", new object[] { first, book, "第一章 · 留白的地图", "从一张不完整的地图开始。" }),
-            ("INSERT INTO chapters VALUES ($a,$b,$c,$d,2)", new object[] { second, book, "第二章 · 雨后的堤岸", "在一次同行中重看熟悉的地方。" }),
-            ("INSERT INTO reading_excerpts VALUES ($a,$b,$c,$d,1)", new object[] { Guid.Parse("c4776689-f909-4b7f-87e1-a5bd83da0a1f"), first, "地图的空白", "祖父把地图铺在桌上，指尖停在一片没有标记的蓝色旁。他说，画图的人总想把路画完整，可走路的人最先记住的，常是那段没画出来的弯。" }),
-            ("INSERT INTO reading_excerpts VALUES ($a,$b,$c,$d,2)", new object[] { Guid.Parse("494884af-fb5c-46e0-bca3-82c14615329a"), first, "两种记法", "我在空白处写下桥的名字，又把它擦掉。纸上只剩浅浅的凹痕，像一条已经有人走过、却还没有决定方向的小路。" }),
-            ("INSERT INTO reading_excerpts VALUES ($a,$b,$c,$d,1)", new object[] { Guid.Parse("63a457f5-ddfa-4ea8-b24c-9aa658fe013e"), second, "雨后", "第二天雨停了，堤岸上的脚印有深有浅。我们没有争论哪一条才是昨天的路，只沿着都能看见的那一段慢慢往前走。" }),
+            ("INSERT INTO books (id,title,author,description) VALUES ($a,$b,$c,$d)", new object[] { book, "河岸练习", "项目原创示例", "一部为阅读工作流写作的虚构短篇。所有片段均为本站原创示例，并非真实出版物。" }),
+            ("INSERT INTO chapters (id,book_id,title,summary,position) VALUES ($a,$b,$c,$d,1)", new object[] { first, book, "第一章 · 留白的地图", "从一张不完整的地图开始。" }),
+            ("INSERT INTO chapters (id,book_id,title,summary,position) VALUES ($a,$b,$c,$d,2)", new object[] { second, book, "第二章 · 雨后的堤岸", "在一次同行中重看熟悉的地方。" }),
+            ("INSERT INTO reading_excerpts (id,chapter_id,label,text,position) VALUES ($a,$b,$c,$d,1)", new object[] { Guid.Parse("c4776689-f909-4b7f-87e1-a5bd83da0a1f"), first, "地图的空白", "祖父把地图铺在桌上，指尖停在一片没有标记的蓝色旁。他说，画图的人总想把路画完整，可走路的人最先记住的，常是那段没画出来的弯。" }),
+            ("INSERT INTO reading_excerpts (id,chapter_id,label,text,position) VALUES ($a,$b,$c,$d,2)", new object[] { Guid.Parse("494884af-fb5c-46e0-bca3-82c14615329a"), first, "两种记法", "我在空白处写下桥的名字，又把它擦掉。纸上只剩浅浅的凹痕，像一条已经有人走过、却还没有决定方向的小路。" }),
+            ("INSERT INTO reading_excerpts (id,chapter_id,label,text,position) VALUES ($a,$b,$c,$d,1)", new object[] { Guid.Parse("63a457f5-ddfa-4ea8-b24c-9aa658fe013e"), second, "雨后", "第二天雨停了，堤岸上的脚印有深有浅。我们没有争论哪一条才是昨天的路，只沿着都能看见的那一段慢慢往前走。" }),
             ("INSERT INTO reading_metadata VALUES ('sample_seeded','1')", Array.Empty<object>())
         };
         foreach (var (sql, values) in statements)
@@ -98,27 +129,27 @@ public sealed class ReadingStore(IWebHostEnvironment environment)
         await connection.OpenAsync();
         await using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT id,title,author,description FROM books ORDER BY title";
+            command.CommandText = "SELECT id,title,author,description,rich_content,format_version FROM books ORDER BY title";
             await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync()) books.Add(new(Guid.Parse(reader.GetString(0)), reader.GetString(1), reader.GetString(2), reader.GetString(3)));
+            while (await reader.ReadAsync()) books.Add(new(Guid.Parse(reader.GetString(0)), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetString(4), reader.IsDBNull(5) ? null : reader.GetInt32(5)));
         }
         await using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT id,book_id,title,summary,position FROM chapters ORDER BY book_id,position";
+            command.CommandText = "SELECT id,book_id,title,summary,position,rich_content,format_version FROM chapters ORDER BY book_id,position";
             await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync()) chapters.Add(new(Guid.Parse(reader.GetString(0)), Guid.Parse(reader.GetString(1)), reader.GetString(2), reader.GetString(3), reader.GetInt32(4)));
+            while (await reader.ReadAsync()) chapters.Add(new(Guid.Parse(reader.GetString(0)), Guid.Parse(reader.GetString(1)), reader.GetString(2), reader.GetString(3), reader.GetInt32(4), reader.IsDBNull(5) ? null : reader.GetString(5), reader.IsDBNull(6) ? null : reader.GetInt32(6)));
         }
         await using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT id,chapter_id,label,text,position FROM reading_excerpts ORDER BY chapter_id,position";
+            command.CommandText = "SELECT id,chapter_id,label,text,position,rich_content,format_version FROM reading_excerpts ORDER BY chapter_id,position";
             await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync()) excerpts.Add(new(Guid.Parse(reader.GetString(0)), Guid.Parse(reader.GetString(1)), reader.GetString(2), reader.GetString(3), reader.GetInt32(4)));
+            while (await reader.ReadAsync()) excerpts.Add(new(Guid.Parse(reader.GetString(0)), Guid.Parse(reader.GetString(1)), reader.GetString(2), reader.GetString(3), reader.GetInt32(4), reader.IsDBNull(5) ? null : reader.GetString(5), reader.IsDBNull(6) ? null : reader.GetInt32(6)));
         }
         await using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT id,excerpt_id,mode,text,created_at,updated_at FROM reading_notes ORDER BY updated_at DESC";
+            command.CommandText = "SELECT id,excerpt_id,mode,text,created_at,updated_at,rich_content,format_version FROM reading_notes ORDER BY updated_at DESC";
             await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync()) notes.Add(new(Guid.Parse(reader.GetString(0)), Guid.Parse(reader.GetString(1)), reader.GetString(2), reader.GetString(3), DateTimeOffset.Parse(reader.GetString(4)), DateTimeOffset.Parse(reader.GetString(5))));
+            while (await reader.ReadAsync()) notes.Add(new(Guid.Parse(reader.GetString(0)), Guid.Parse(reader.GetString(1)), reader.GetString(2), reader.GetString(3), DateTimeOffset.Parse(reader.GetString(4)), DateTimeOffset.Parse(reader.GetString(5)), reader.IsDBNull(6) ? null : reader.GetString(6), reader.IsDBNull(7) ? null : reader.GetInt32(7)));
         }
         return new(books, chapters, excerpts, notes);
     }
@@ -144,46 +175,46 @@ public sealed class ReadingStore(IWebHostEnvironment environment)
         await connection.OpenAsync();
         var command = connection.CreateCommand();
         command.CommandText = sql;
-        foreach (var (name, value) in parameters) command.Parameters.AddWithValue(name, value is Guid id ? id.ToString() : value);
+        foreach (var (name, value) in parameters) command.Parameters.AddWithValue(name, value is Guid id ? id.ToString() : value ?? DBNull.Value);
         return await command.ExecuteNonQueryAsync();
     }
 
     public async Task<Book> CreateBookAsync(BookInput input)
     {
-        var book = new Book(Guid.NewGuid(), input.Title.Trim(), input.Author.Trim(), input.Description.Trim());
-        await ExecuteAsync("INSERT INTO books VALUES ($id,$title,$author,$description)", ("$id", book.Id), ("$title", book.Title), ("$author", book.Author), ("$description", book.Description));
+        var book = new Book(Guid.NewGuid(), input.Title.Trim(), input.Author.Trim(), input.RichContent is null ? input.Description.Trim() : input.Description, input.RichContent, input.FormatVersion);
+        await ExecuteAsync("INSERT INTO books (id,title,author,description,rich_content,format_version) VALUES ($id,$title,$author,$description,$rich,$version)", ("$id", book.Id), ("$title", book.Title), ("$author", book.Author), ("$description", book.Description), ("$rich", book.RichContent ?? (object)DBNull.Value), ("$version", book.FormatVersion ?? (object)DBNull.Value));
         return book;
     }
-    public Task<int> UpdateBookAsync(Guid id, BookInput input) => ExecuteAsync("UPDATE books SET title=$title,author=$author,description=$description WHERE id=$id", ("$id", id), ("$title", input.Title.Trim()), ("$author", input.Author.Trim()), ("$description", input.Description.Trim()));
+    public Task<int> UpdateBookAsync(Guid id, BookInput input) => ExecuteAsync("UPDATE books SET title=$title,author=$author,description=$description,rich_content=$rich,format_version=$version WHERE id=$id", ("$id", id), ("$title", input.Title.Trim()), ("$author", input.Author.Trim()), ("$description", input.RichContent is null ? input.Description.Trim() : input.Description), ("$rich", input.RichContent ?? (object)DBNull.Value), ("$version", input.FormatVersion ?? (object)DBNull.Value));
     public Task<int> DeleteBookAsync(Guid id) => ExecuteAsync("DELETE FROM books WHERE id=$id", ("$id", id));
 
     public async Task<Chapter> CreateChapterAsync(ChapterInput input)
     {
         var id = Guid.NewGuid();
-        await ExecuteAsync("INSERT INTO chapters VALUES ($id,$book,$title,$summary,(SELECT COALESCE(MAX(position),0)+1 FROM chapters WHERE book_id=$book))", ("$id", id), ("$book", input.BookId), ("$title", input.Title.Trim()), ("$summary", input.Summary.Trim()));
+        await ExecuteAsync("INSERT INTO chapters (id,book_id,title,summary,position,rich_content,format_version) VALUES ($id,$book,$title,$summary,(SELECT COALESCE(MAX(position),0)+1 FROM chapters WHERE book_id=$book),$rich,$version)", ("$id", id), ("$book", input.BookId), ("$title", input.Title.Trim()), ("$summary", input.RichContent is null ? input.Summary.Trim() : input.Summary), ("$rich", input.RichContent ?? (object)DBNull.Value), ("$version", input.FormatVersion ?? (object)DBNull.Value));
         var snapshot = await GetSnapshotAsync();
         return snapshot.Chapters.Single(c => c.Id == id);
     }
-    public Task<int> UpdateChapterAsync(Guid id, ChapterUpdate input) => ExecuteAsync("UPDATE chapters SET title=$title,summary=$summary WHERE id=$id", ("$id", id), ("$title", input.Title.Trim()), ("$summary", input.Summary.Trim()));
+    public Task<int> UpdateChapterAsync(Guid id, ChapterUpdate input) => ExecuteAsync("UPDATE chapters SET title=$title,summary=$summary,rich_content=$rich,format_version=$version WHERE id=$id", ("$id", id), ("$title", input.Title.Trim()), ("$summary", input.RichContent is null ? input.Summary.Trim() : input.Summary), ("$rich", input.RichContent ?? (object)DBNull.Value), ("$version", input.FormatVersion ?? (object)DBNull.Value));
     public Task<int> DeleteChapterAsync(Guid id) => ExecuteAsync("DELETE FROM chapters WHERE id=$id", ("$id", id));
 
     public async Task<ReadingExcerpt> CreateExcerptAsync(ExcerptInput input)
     {
         var id = Guid.NewGuid();
-        await ExecuteAsync("INSERT INTO reading_excerpts VALUES ($id,$chapter,$label,$text,(SELECT COALESCE(MAX(position),0)+1 FROM reading_excerpts WHERE chapter_id=$chapter))", ("$id", id), ("$chapter", input.ChapterId), ("$label", input.Label.Trim()), ("$text", input.Text.Trim()));
+        await ExecuteAsync("INSERT INTO reading_excerpts (id,chapter_id,label,text,position,rich_content,format_version) VALUES ($id,$chapter,$label,$text,(SELECT COALESCE(MAX(position),0)+1 FROM reading_excerpts WHERE chapter_id=$chapter),$rich,$version)", ("$id", id), ("$chapter", input.ChapterId), ("$label", input.Label.Trim()), ("$text", input.RichContent is null ? input.Text.Trim() : input.Text), ("$rich", input.RichContent ?? (object)DBNull.Value), ("$version", input.FormatVersion ?? (object)DBNull.Value));
         var snapshot = await GetSnapshotAsync();
         return snapshot.Excerpts.Single(e => e.Id == id);
     }
-    public Task<int> UpdateExcerptAsync(Guid id, ExcerptUpdate input) => ExecuteAsync("UPDATE reading_excerpts SET label=$label,text=$text WHERE id=$id", ("$id", id), ("$label", input.Label.Trim()), ("$text", input.Text.Trim()));
+    public Task<int> UpdateExcerptAsync(Guid id, ExcerptUpdate input) => ExecuteAsync("UPDATE reading_excerpts SET label=$label,text=$text,rich_content=$rich,format_version=$version WHERE id=$id", ("$id", id), ("$label", input.Label.Trim()), ("$text", input.RichContent is null ? input.Text.Trim() : input.Text), ("$rich", input.RichContent ?? (object)DBNull.Value), ("$version", input.FormatVersion ?? (object)DBNull.Value));
     public Task<int> DeleteExcerptAsync(Guid id) => ExecuteAsync("DELETE FROM reading_excerpts WHERE id=$id", ("$id", id));
 
     public async Task<ReadingNote> CreateNoteAsync(NoteInput input)
     {
         var now = DateTimeOffset.UtcNow;
-        var note = new ReadingNote(Guid.NewGuid(), input.ExcerptId, input.Mode, input.Text.Trim(), now, now);
-        await ExecuteAsync("INSERT INTO reading_notes VALUES ($id,$excerpt,$mode,$text,$created,$updated)", ("$id", note.Id), ("$excerpt", note.ExcerptId), ("$mode", note.Mode), ("$text", note.Text), ("$created", now.ToString("O")), ("$updated", now.ToString("O")));
+        var note = new ReadingNote(Guid.NewGuid(), input.ExcerptId, input.Mode, input.RichContent is null ? input.Text.Trim() : input.Text, now, now, input.RichContent, input.FormatVersion);
+        await ExecuteAsync("INSERT INTO reading_notes (id,excerpt_id,mode,text,created_at,updated_at,rich_content,format_version) VALUES ($id,$excerpt,$mode,$text,$created,$updated,$rich,$version)", ("$id", note.Id), ("$excerpt", note.ExcerptId), ("$mode", note.Mode), ("$text", note.Text), ("$created", now.ToString("O")), ("$updated", now.ToString("O")), ("$rich", note.RichContent ?? (object)DBNull.Value), ("$version", note.FormatVersion ?? (object)DBNull.Value));
         return note;
     }
-    public Task<int> UpdateNoteAsync(Guid id, NoteUpdate input) => ExecuteAsync("UPDATE reading_notes SET mode=$mode,text=$text,updated_at=$updated WHERE id=$id", ("$id", id), ("$mode", input.Mode), ("$text", input.Text.Trim()), ("$updated", DateTimeOffset.UtcNow.ToString("O")));
+    public Task<int> UpdateNoteAsync(Guid id, NoteUpdate input) => ExecuteAsync("UPDATE reading_notes SET mode=$mode,text=$text,rich_content=$rich,format_version=$version,updated_at=$updated WHERE id=$id", ("$id", id), ("$mode", input.Mode), ("$text", input.RichContent is null ? input.Text.Trim() : input.Text), ("$rich", input.RichContent ?? (object)DBNull.Value), ("$version", input.FormatVersion ?? (object)DBNull.Value), ("$updated", DateTimeOffset.UtcNow.ToString("O")));
     public Task<int> DeleteNoteAsync(Guid id) => ExecuteAsync("DELETE FROM reading_notes WHERE id=$id", ("$id", id));
 }

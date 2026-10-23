@@ -2,3 +2,27 @@
 @media(max-width:1120px){.reading-grid{grid-template-columns:210px minmax(0,1fr)}.notes-rail{grid-column:2}.reading-intro-mark{right:0}}
 @media(max-width:760px){.reading-header{padding:0 5%;height:68px}.reading-main{padding:0 5% 50px}.reading-intro{min-height:210px;padding-top:39px}.reading-intro-mark{font-size:240px;top:-60px;opacity:.5}.reading-intro h1{font-size:32px}.reading-grid{grid-template-columns:minmax(0,1fr);gap:14px}.reading-rail,.notes-rail{grid-column:1;min-width:0}.reading-card{padding:22px;min-width:0}.reading-footer{padding:24px 5%}}
 @media(max-width:500px){.reading-logo strong{font-size:16px}.reading-logo small{font-size:7px}.reading-header nav{gap:12px;font-size:11px}.reading-intro h1{font-size:28px}.reading-intro p{font-size:12px}.mode-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mode-card{min-height:95px}.excerpt-caption{display:grid}.reading-section-head h2{font-size:19px}.reading-card{padding:18px}.reading-footer{display:grid}}
+
+.rich-view,.rich-editor .ProseMirror{line-height:1.8;overflow-wrap:anywhere}
+.rich-view p,.rich-editor .ProseMirror p{white-space:pre-wrap;margin:.35em 0}
+.rich-view ul,.rich-view ol,.rich-editor .ProseMirror ul,.rich-editor .ProseMirror ol{padding-left:1.6em;margin:.5em 0}
+.rich-view ul,.rich-editor .ProseMirror ul{list-style:disc}
+.rich-view ol,.rich-editor .ProseMirror ol{list-style:decimal}
+.rich-view li,.rich-editor .ProseMirror li{display:list-item}
+.rich-view blockquote,.rich-editor .ProseMirror blockquote{border-left:3px solid #c7a184;padding-left:1em;margin:.7em 0;color:#526b69}
+.excerpt-paper .rich-view{margin-top:18px;font:500 15px/2.15 'Noto Serif SC',serif;color:#3e5558}
+.excerpt-paper .rich-view blockquote{font:inherit;white-space:normal;margin:.7em 0}
+.saved-note-content{max-height:5.5em;overflow:hidden;font-size:11px;line-height:1.6}
+.saved-note-content .rich-view p{margin:0}
+.rich-editor{border:1px solid #d9e2d9;background:#fff;color:#344f54;font-size:12px}
+.rich-toolbar{display:flex;flex-wrap:wrap;gap:3px;padding:6px;border-bottom:1px solid #e0e7df;background:#f8faf6}
+.rich-toolbar button{border:0;background:transparent;color:#536c69;padding:5px 8px;font:600 11px sans-serif;min-width:28px}
+.rich-toolbar button:hover,.rich-toolbar button[aria-pressed=true]{background:#e4ede5;color:#24555c}
+.rich-editor .ProseMirror{min-height:145px;padding:12px 14px;outline:none}
+.editor-dialog .rich-editor .ProseMirror{min-height:115px}
+.rich-editor:focus-within{outline:2px solid #9cbdb1;outline-offset:1px}
+.book-description{font-size:11px;line-height:1.8;color:#7d8f88;margin-bottom:11px}
+.chapter-summary{font-size:11px;color:#91a09a;line-height:1.6;margin-top:4px}
+.chapter-summary .rich-view p{margin:0}
+.editor-count{font:400 10px 'Noto Sans SC',sans-serif;color:#899990;text-align:right}
+.editor-count.over-limit{color:#a45749;font-weight:700}
